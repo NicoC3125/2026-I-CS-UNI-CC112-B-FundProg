@@ -1,70 +1,84 @@
-#include "../include/MotorImagen.h"
-#include <fstream>
-#include <iostream>
+#include "MotorImagen.h"
 
-MotorImagen::MotorImagen() : filas(0), columnas(0), maxValor(255), matrizPixeles(nullptr), imagenCargada(false) {}
+MotorImagen::MotorImagen() : maxValor(255), imagenCargada(false) {}
 
-MotorImagen::~MotorImagen() {
-    if (matrizPixeles != nullptr) {
-        for (int i = 0; i < filas; ++i) {
-            delete[] matrizPixeles[i]; 
-        }
-        delete[] matrizPixeles; 
+MotorImagen::MotorImagen(const MotorImagen& otro) 
+    : nombreArchivo(otro.nombreArchivo), maxValor(otro.maxValor), 
+      matrizPixeles(otro.matrizPixeles), imagenCargada(otro.imagenCargada) {}
+
+MotorImagen::MotorImagen(MotorImagen&& otro) noexcept 
+    : nombreArchivo(move(otro.nombreArchivo)), 
+      maxValor(exchange(otro.maxValor, 0)), 
+      matrizPixeles(move(otro.matrizPixeles)), 
+      imagenCargada(exchange(otro.imagenCargada, false)) {}
+
+MotorImagen& MotorImagen::operator=(const MotorImagen& otro) {
+    if (this != &otro) {
+        nombreArchivo = otro.nombreArchivo;
+        maxValor = otro.maxValor;
+        matrizPixeles = otro.matrizPixeles;
+        imagenCargada = otro.imagenCargada;
     }
+    return *this;
 }
 
-bool MotorImagen::reservarMemoria(int i, int j) {
-    filas = i;
-    columnas = j;
-    matrizPixeles = new Pixel*[filas];
-    for (int i = 0; i < filas; ++i) {
-        matrizPixeles[i] = new Pixel[columnas];
-    }
+MotorImagen::~MotorImagen() {}
+
+void MotorImagen::liberarMemoria() {
+    matrizPixeles.CreateMatrix(0, 0);
+    imagenCargada = false;
+}
+
+TB MotorImagen::reservarMemoria(TI f, TI c) {
+    matrizPixeles.CreateMatrix(f, c);
     return true;
 }
 
-bool MotorImagen::cargarImagenPPM(const std::string& ruta) {
-    std::ifstream archivo(ruta);
+TI MotorImagen::getFilas() const { return matrizPixeles.GetRows(); }
+TI MotorImagen::getColumnas() const { return matrizPixeles.GetCols(); }
+
+TB MotorImagen::cargarImagenPPM(const TS& ruta) {
+    ifstream archivo(ruta);
     if (!archivo.is_open()) return false;
 
-    std::string formato;
+    TS formato;
     archivo >> formato;
-    if (formato != "P3") return false; 
+    if (formato != "P3" && formato != "Pi3") return false; 
 
-    int f, c, maxVal;
-    archivo >> c >> f >> maxVal; 
+    TI f, c;
+    archivo >> c >> f >> maxValor; 
     
-    reservarMemoria(f, c);
-    maxValor = maxVal;
+    if (!reservarMemoria(f, c)) return false;
 
-    for (int i = 0; i < filas; ++i) {
-        for (int j = 0; j < columnas; ++j) {
-            int r, g, b;
-            archivo >> r >> g >> b;
-            Pixel* p = *(matrizPixeles + i) + j;
-            p->r = r;
-            p->g = g;
-            p->b = b;
-     }
+    for (TI i = 0; i < getFilas(); ++i) {
+        for (TI j = 0; j < getColumnas(); ++j) {
+            TI r, g, b;
+            if (archivo >> r >> g >> b) {
+                matrizPixeles(i, j) = Pixel(static_cast<TU8>(r), static_cast<TU8>(g), static_cast<TU8>(b));
+            }
+        }
     }
+
     imagenCargada = true;
-    tipoImagen = "PPM";
     return true;
 }
 
-bool MotorImagen::guardarImagenPPM(const std::string& ruta) {
+TB MotorImagen::guardarImagenPPM(const TS& ruta) {
     if (!imagenCargada) return false;
-    std::ofstream archivo(ruta);
+    ofstream archivo(ruta);
     if (!archivo.is_open()) return false;
 
-    archivo << "P3\n" << columnas << " " << filas << "\n" << maxValor << "\n";
+    archivo << "P3\n" << getColumnas() << " " << getFilas() << "\n" << maxValor << "\n";
     
-    for (int i = 0; i < filas; ++i) {
-        for (int j = 0; j < columnas; ++j) {
-            Pixel* p = *(matrizPixeles + i) + j;
-            archivo << (int)p->r << " " << (int)p->g << " " << (int)p->b << "  ";
+    for (TI i = 0; i < getFilas(); ++i) {
+        for (TI j = 0; j < getColumnas(); ++j) {
+            const Pixel& p = matrizPixeles(i, j);
+            archivo << static_cast<TI>(p.r) << " " 
+                    << static_cast<TI>(p.g) << " " 
+                    << static_cast<TI>(p.b) << "  ";
         }
         archivo << "\n";
     }
+    
     return true;
 }

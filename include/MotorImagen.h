@@ -1,82 +1,37 @@
-#ifndef MOTOR_IMAGEN_H
-#define MOTOR_IMAGEN_H
-#include <string>
-#include <iostream>
-#include <vector>
-#include <fstream>
-#include <limits>
-#include <cstring>
-struct Pixel {
-    unsigned char r, g, b;
-    //constructores
-    Pixel(): r(0), g(0), b(0) {}
-    Pixel(int rojo, int verde, int azul): r(rojo), g(verde), b(azul) {}
-    
-    int getGris() const {
-        return (r+g+b) / 3; 
-    }
-    void setGris(int valor)  {
-       r=g=b=valor;
-    }
-    bool esOscuro(int umbral = 128) const {
-        return getGris() < umbral;
-    }
-    bool esClaro(int umbral = 128) const {
-        return getGris() >= umbral;
-    }
-};
-//Clase principal del Motor de Imágenes
-class MotorImagen {
-    private:
-    std::string nombreArchivo; // Nombre del archivo cargado
-    int filas; //"alto"
-    int columnas; //"ancho"
-    int maxValor; //valor máximo de intensidad(255 para RGB)
-    Pixel** matrizPixeles;
-    bool imagenCargada;
-    std::string tipoImagen; //"medica" o "satelital" o "astronomica"
+#ifndef __MOTOR_IMAGEN_H__
+#define __MOTOR_IMAGEN_H__
+#include "util.h"
+#include "Pixel.h"
+#include "CMatrix.h"
 
-    public:
-    //Constructor y destructor
+class MotorImagen {
+    TS nombreArchivo; 
+    TI maxValor; 
+    CMatrix<Pixel> matrizPixeles; 
+    TB imagenCargada;
+
+public:
     MotorImagen();
+    MotorImagen(const MotorImagen& otro);
+    MotorImagen(MotorImagen&& otro) noexcept;
+    MotorImagen& operator=(const MotorImagen& otro);
     ~MotorImagen();
-    //Gestión de memoria dinámica
+
     void liberarMemoria();
-    bool reservarMemoria(int filas, int columnas);
-    void copiarMatriz(const MotorImagen& origen);
-// carga y guardado de archivos
-bool cargarImagen(const std::string& ruta);
-bool guardarImagen(const std::string& ruta);
-bool cargarImagenPPM(const std::string& ruta); //Imagenes a color
-bool guardarImagenPPM(const std::string& ruta);
-//Métodos de acceso(Getters)
-std::string getNombreArchivo() const{return nombreArchivo; }
-int getFilas() const { return filas; }
-int getColumnas() const { return columnas; }
-int getMaxValor() const { return maxValor; }
-Pixel** getMatriz() const { return matrizPixeles; }
-bool isImagenCargada() const { return imagenCargada; }
-std::string getTipoImagen() const { return tipoImagen; }
-//Métodos de acceso a Píxeles
-Pixel getPixel(int fila, int col) const;
-void setPixel(int fila, int col, const Pixel& pixel);
-void setPixel(int fila, int col, int r, int g, int b);
-//Estadísticas
-void mostrarEstadisticas() const;
-void generarHistograma() const;
-//Métodos de utilidad
-bool validarCoordenadas(int fila, int col) const;
-void estableccerTipoImagen(const std::string& tipo);
-//funciones extra para cuando agregamos la fucncion de estrellas
-void aplicarFiltroMediana();     
- // Módulo Deforestación
- void convertirEscalaGrises();
-void clasificarZonasDeforestadas();
-// Módulo Estrellas
-void aislarEstrellas(int brilloMinimo);
-void clasificarCumuloEstelar();
-// Módulo Medicina
-void binarizarParaAnomalias(int umbralMaximo);
-void clasificarAnomaliaMedica();
+    TB reservarMemoria(TI f, TI c);
+
+    TB cargarImagenPPM(const TS& ruta); 
+    TB guardarImagenPPM(const TS& ruta);
+
+    TI getFilas() const;
+    TI getColumnas() const;
+
+    void aplicarFiltroMediana();     
+    void clasificarZonasDeforestadas();
+    void aislarEstrellas(TI brilloMinimo);
+    void clasificarCumuloEstelar();
+    void binarizarParaAnomalias(TI umbralMaximo);
+    void clasificarAnomaliaMedica();
 };
+
 #endif
